@@ -57,6 +57,7 @@
       this._force = false;
       this._inited = false;
       this.backdrop = {
+        backdrops: [],
         overlay: null,
         $element: null,
         $background: null,
@@ -665,11 +666,28 @@
       if (this.backdrop.backgroundShown) {
         return;
       }
-      this.backdrop = $("<div/>", {
-        "class": "tour-backdrop"
-      });
+      this.backdrop = {
+        backdrops: [
+          $("<div/>", {
+            "class": "tour-backdrop tour-backdrop-top"
+          }),
+          $("<div/>", {
+            "class": "tour-backdrop tour-backdrop-right"
+          }),
+          $("<div/>", {
+            "class": "tour-backdrop tour-backdrop-bottom"
+          }),
+          $("<div/>", {
+            "class": "tour-backdrop tour-backdrop-left"
+          })
+        ]
+      }
+
       this.backdrop.backgroundShown = true;
-      return $("body").append(this.backdrop);
+      this.backdrop.backdrops.forEach(function(backdrop) {
+        $("body").append(backdrop);
+      });
+      return;
     };
 
     Tour.prototype._hideBackdrop = function() {
@@ -679,7 +697,7 @@
 
     Tour.prototype._hideBackground = function() {
       if (this.backdrop) {
-        this.backdrop.remove();
+        this.backdrop.backdrops.forEach(function(backdrop) { backdrop.remove(); });
         this.backdrop.overlay = null;
         return this.backdrop.backgroundShown = false;
       }
