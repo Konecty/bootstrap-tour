@@ -39,6 +39,7 @@
         orphan: false,
         duration: false,
         basePath: "",
+        position: "inherit",
         template: "<div class='popover'> <div class='arrow'></div> <h3 class='popover-title'></h3> <div class='popover-content'></div> <div class='popover-navigation'> <div class='btn-group'> <button class='btn btn-sm btn-default' data-role='prev'>&laquo; Prev</button> <button class='btn btn-sm btn-default' data-role='next'>Next &raquo;</button> <button class='btn btn-sm btn-default' data-role='pause-resume' data-pause-text='Pause' data-resume-text='Resume'>Pause</button> </div> <button class='btn btn-sm btn-default' data-role='end'>End tour</button> </div> </div>",
         afterSetState: function(key, value) {},
         afterGetState: function(key, value) {},
@@ -97,6 +98,7 @@
           redirect: this._options.redirect,
           orphan: this._options.orphan,
           duration: this._options.duration,
+          position: this._options.position,
           template: this._options.template,
           onShow: this._options.onShow,
           onShown: this._options.onShown,
@@ -310,19 +312,24 @@
           if (step.backdrop) {
             _this._showBackdrop(!_this._isOrphan(step) ? step.element : void 0);
           }
-          _this._scrollIntoView(step.element, function() {
+          callback = function() {
             if (_this.getCurrentStep() !== i) {
               return;
             }
             if ((step.element != null) && step.backdrop) {
-              _this._showOverlayElement(step.element);
+              _this._showOverlayElement(step);
             }
             _this._showPopover(step, i);
             if (step.onShown != null) {
               step.onShown(_this);
             }
             return _this._debug("Step " + (_this._current + 1) + " of " + _this._options.steps.length);
-          });
+          };
+          if (step.position === 'fixed') {
+            callback()
+          } else {
+            _this._scrollIntoView(step.element, callback);
+          }
           if (step.duration) {
             return _this.resume();
           }
@@ -462,6 +469,9 @@
         $template = $template.addClass("orphan");
       }
       $element = $(step.element);
+      if (step.position === 'fixed') {
+        $template.css('position', 'fixed');
+      }
       $template.addClass("tour-" + this._options.name + " tour-" + this._options.name + "-" + i);
       $element.addClass("tour-" + this._options.name + "-element tour-" + this._options.name + "-" + i + "-element");
       if (step.options) {
@@ -703,7 +713,8 @@
       }
     };
 
-    Tour.prototype._showOverlayElement = function(element) {
+    Tour.prototype._showOverlayElement = function(step) {
+      var element = step.element;
       var $background, $element, offset;
       $element = $(element);
       if (!$element || $element.length === 0 || this.backdrop.overlayElementShown) {
@@ -711,14 +722,41 @@
       }
       this.backdrop.overlayElementShown = true;
       $background = $("<div/>");
+
+
       offset = $element.offset();
-      offset.top = offset.top;
-      offset.left = offset.left;
-      $background.width($element.innerWidth()).height($element.innerHeight()).addClass("tour-step-background").offset(offset);
-      $element.addClass("tour-step-backdrop");
-      $("body").append($background);
+      
+      offsetTop = step.position === 'fixed' ? offset.top - window.scrollY : offset.top;
+      offsetLeft = step.position === 'fixed' ? offset.left - window.scrollX : offset.left;
+      width = $element.innerWidth();
+      height = $element.innerHeight();
+      
+      $top = $('.tour-backdrop-top');
+      $right = $('.tour-backdrop-right');
+      $left = $('.tour-backdrop-left');
+      $bottom = $('.tour-backdrop-bottom');
+
+      $top.css('width', offsetLeft + width);
+      $top.css('height', offsetTop);
+      
+      $right.css('left', offsetLeft + width);
+      $right.css('height', offsetTop + height);
+
+      $bottom.css('top', offsetTop + height);
+      $bottom.css('left', offsetLeft);
+      
+      $left.css('top', offsetTop);
+      $left.css('width', offsetLeft);
+
+      if (step.position !== 'fixed') {
+        $background.width($element.innerWidth()).height($element.innerHeight()).addClass("tour-step-background").offset(offset);
+        $element.addClass("tour-step-backdrop");
+        $("body").append($background);
+        this.backdrop.$background = $background;
+      }
+
       this.backdrop.$element = $element;
-      return this.backdrop.$background = $background;
+      return true;
     };
 
     Tour.prototype._hideOverlayElement = function() {
@@ -726,7 +764,12 @@
         return;
       }
       this.backdrop.$element.removeClass("tour-step-backdrop");
-      this.backdrop.$background.remove();
+      if (this.backdrop.$background) {
+        this.backdrop.$background.remove();
+      }
+
+      this.backdrop.backdrops.forEach(function(backdrop) { backdrop.remove(); })
+
       this.backdrop.$element = null;
       this.backdrop.$background = null;
       return this.backdrop.overlayElementShown = false;
