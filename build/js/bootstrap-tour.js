@@ -498,22 +498,24 @@
         $navigation.find("[data-role='pause-resume']").remove();
       }
       step.template = $template.clone().wrap("<div>").parent().html();
-      $element.popover({
-        placement: step.placement,
-        trigger: "manual",
-        title: step.title,
-        content: step.content,
-        html: true,
-        animation: step.animation,
-        container: step.container,
-        template: step.template,
-        selector: step.element
-      }).popover("show");
-      $tip = $element.data("bs.popover") ? $element.data("bs.popover").tip() : $element.data("popover").tip();
-      $tip.attr("id", step.id);
-      this._reposition($tip, step);
-      if (isOrphan) {
-        return this._center($tip);
+      if ($element.popover) {
+        $element.popover({
+          placement: step.placement,
+          trigger: "manual",
+          title: step.title,
+          content: step.content,
+          html: true,
+          animation: step.animation,
+          container: step.container,
+          template: step.template,
+          selector: step.element
+        }).popover("show");
+        $tip = $element.data("bs.popover") ? $element.data("bs.popover").tip() : $element.data("popover").tip();
+        $tip.attr("id", step.id);
+        this._reposition($tip, step);
+        if (isOrphan) {
+          return this._center($tip);
+        }
       }
     };
 
